@@ -38,14 +38,23 @@
   }
   .avatar {
     position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-    font-size: 64px; cursor: grab; user-select: none; line-height: 1;
+    cursor: grab; user-select: none; line-height: 1;
     transition: transform .18s; z-index: 2;
     filter: drop-shadow(0 4px 4px rgba(0,0,0,.12));
   }
+  .avatar canvas {
+    display: block; width: 80px; height: 80px;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    animation: breathe 3.2s ease-in-out infinite; transform-origin: bottom center;
+  }
+  @keyframes breathe { 50% { transform: scaleY(1.02); } }
   .avatar:active { cursor: grabbing; }
   .avatar.bounce { animation: bounce .5s; }
   @keyframes bounce { 30% { transform: translateX(-50%) translateY(-16px) scale(1.06); } }
-  .avatar.tilt { transform: translateX(-50%) rotate(-12deg); }
+  .toy canvas {
+    display: block; width: 36px; height: 36px;
+    image-rendering: pixelated; image-rendering: crisp-edges;
+  }
   .zzz {
     position: absolute; bottom: 96px; left: calc(50% + 30px); font-size: 22px;
     opacity: 0; transition: opacity .8s; z-index: 3; animation: float 2.4s infinite;
@@ -127,9 +136,9 @@
   <div class="room" id="room">
     <div class="window"></div>
     <div class="rug"></div>
-    <div class="avatar" id="avatar">🐱</div>
+    <div class="avatar" id="avatar"><canvas id="cat-px" width="16" height="16"></canvas></div>
     <div class="zzz" id="zzz">💤</div>
-    <div class="toy" id="toy" title="けだまであそぶ">🧶</div>
+    <div class="toy" id="toy" title="けだまであそぶ"><canvas id="yarn-px" width="12" height="12"></canvas></div>
   </div>
 
   <div class="status">
@@ -159,7 +168,105 @@
 <script src="engine.js"></script>
 <script>
   const $ = id => document.getElementById(id);
-  const FACES = { normal: '🐱', happy: '😺', sulky: '😾', sad: '😿', drowsy: '🐱', asleep: '🐱', groggy: '😽' };
+
+  /* ---- ドット絵スプライト（24x24、文字=パレット） ---- */
+  const PAL = {
+    'o': '#f6a95c',  // 体のオレンジ
+    'd': '#e0873f',  // 濃いオレンジ（しま・陰）
+    'O': '#a05c32',  // 輪郭
+    'w': '#fff6ec',  // 口まわり・おなか
+    'p': '#f6aebb',  // 内耳・ほっぺ
+    'k': '#3f2d23',  // 目のふち・鼻・口
+    'E': '#2e6db4',  // ひとみの青
+    'b': '#8fd0f2',  // なみだ
+    'r': '#e05a6a',  // くびわ
+    'y': '#f7c948',  // すず
+    'B': '#5b9bd5',  // けだま本体
+    'D': '#3c6ea5',  // けだまの糸すじ
+    '.': null
+  };
+  // 16x16のシンプル版。高精細化（24px/32px）は3案続けて没になった経緯があるので、
+  // これを正とする。手を入れるときは表情の記号性を崩さない範囲で。
+  const CAT_BASE_TOP = [
+    '................',
+    '..O.........O...',
+    '.OpO.......OpO..',
+    '.OppO.....OppO..',
+    '.OooOOOOOOOooO..',
+  ];
+  const CAT_BASE_BOTTOM = [
+    '.OooowwwwwoooO..',
+    '.OooowwwwwoooO..',
+    '.OooowwwwwoooOO.',
+    '.OooowwwwwoooOO.',
+    '.OowwOwwwOwwoO..',
+    '..OOOOOOOOOOO...',
+    '................',
+  ];
+  // 顔4行（目・鼻・口）だけ表情差分にする。happyは開き目＋あけ口（閉じ目はblinkの仕事）
+  const FACE_ROWS = {
+    normal: ['.OoooooooooooO..', '.OookoooookooO..', '.OooowwkwwoooO..', '.OpoowwkwwoopO..'],
+    blink:  ['.OoooooooooooO..', '.OokkoooookkoO..', '.OooowwkwwoooO..', '.OpoowwkwwoopO..'],
+    happy:  ['.OoooooooooooO..', '.OookoooookooO..', '.OooowwkwwoooO..', '.OpoowkkkwoopO..'],
+    drowsy: ['.OoooooooooooO..', '.OokkoooookkoO..', '.OooowwkwwoooO..', '.OpooowwwooopO..'],
+    sulky:  ['.OokoooooookoO..', '.OokkoooookkoO..', '.OooowwkwwoooO..', '.OpooowwwooopO..'],
+    sad:    ['.OokoooooookoO..', '.OookoooookooO..', '.OobowwkwwoooO..', '.OpooowwwooopO..'],
+  };
+  const catSprite = face => CAT_BASE_TOP.concat(FACE_ROWS[face] || FACE_ROWS.normal, CAT_BASE_BOTTOM);
+  const CAT_ASLEEP = [
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+    '..O.OOOOOO......',
+    '..OOooooooOO....',
+    '.OooooooooooO...',
+    '.OoooOOooooooO..',
+    'OooooooooooooO..',
+    'OokoooooOOoooO..',
+    '.OOooooooooOO...',
+    '...OOOOOOOO.....',
+    '................',
+    '................',
+    '................',
+  ];
+  const YARN = [
+    '...DDDDDD...',
+    '.DDBBBBBBDD.',
+    '.DBwwBBBBBD.',
+    'DBwBBBBDDBBD',
+    'DBBBBDDBBBBD',
+    'DBBDDBBBBDBD',
+    'DBDBBBBDDBBD',
+    'DBBBBDDBBBBD',
+    '.DBBDBBBBBD.',
+    '.DDBBBBBBDD.',
+    '...DDDDDD...',
+    '..........DD',
+  ];
+  function drawSprite(canvas, rows) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    rows.forEach((row, y) => { [...row].forEach((ch, x) => {
+      const c = PAL[ch]; if (c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
+    }); });
+  }
+  let curFace = 'normal', blinking = false;
+  function drawCat() {
+    if (curFace === 'asleep') return drawSprite($('cat-px'), CAT_ASLEEP);
+    const f = (blinking && ['normal', 'happy', 'sad'].includes(curFace)) ? 'blink'
+      : (curFace === 'groggy' ? 'drowsy' : curFace);
+    drawSprite($('cat-px'), catSprite(f));
+  }
+  (function blinkLoop() {
+    setTimeout(() => {
+      blinking = true; drawCat();
+      setTimeout(() => { blinking = false; drawCat(); blinkLoop(); }, 160);
+    }, 2600 + Math.random() * 3000);
+  })();
+  drawSprite($('yarn-px'), YARN);
+
   let typingEl = null;
 
   function addMsg(sender, text) {
@@ -180,8 +287,7 @@
   function onState(v) {
     setBar('m-hunger', v.needs.hunger); setBar('m-play', v.needs.play);
     setBar('m-attention', v.needs.attention); setBar('m-sleepiness', v.needs.sleepiness);
-    $('avatar').textContent = FACES[v.face] || '🐱';
-    $('avatar').classList.toggle('tilt', v.face === 'asleep');
+    curFace = v.face; drawCat();
     $('zzz').classList.toggle('show', v.face === 'asleep' || v.face === 'drowsy');
     $('room').classList.toggle('night', v.face === 'asleep');
     const m = v.mood;
