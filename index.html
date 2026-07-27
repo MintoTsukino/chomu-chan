@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ちょむちゃんのおへや 🐱</title>
+<style>
+  :root {
+    --bg: #fdf6ec; --ink: #4a4038; --sub: #8a7d70; --line: #efe2d0;
+    --accent: #f4a261; --green: #7ec8b8; --pink: #f2a6b8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Hiragino Maru Gothic ProN", "BIZ UDGothic", "Yu Gothic", sans-serif;
+    background: var(--bg); color: var(--ink); margin: 0; min-height: 100vh;
+    display: flex; justify-content: center; align-items: center; padding: 16px;
+  }
+  .app { width: 400px; max-width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ---- お部屋 ---- */
+  .room {
+    position: relative; height: 230px; border-radius: 18px; overflow: hidden;
+    background: linear-gradient(180deg, #cfe8f5 0%, #e8f3ec 55%, #f5e8d5 55.5%, #efdcc0 100%);
+    border: 2px solid var(--line); box-shadow: 0 6px 18px rgba(120,90,60,.10);
+    transition: filter 1.2s;
+  }
+  .room.night { filter: brightness(.62) saturate(.8); }
+  .window {
+    position: absolute; top: 18px; left: 22px; width: 74px; height: 60px;
+    background: linear-gradient(180deg,#aederf5,#fdf0c8); border: 4px solid #fff;
+    border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  }
+  .window::after { content:''; position:absolute; inset:0; border-left:3px solid #fff; left:50%; }
+  .rug {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    width: 190px; height: 44px; border-radius: 50%;
+    background: #f7cdd4; opacity: .55;
+  }
+  .avatar {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    font-size: 64px; cursor: grab; user-select: none; line-height: 1;
+    transition: transform .18s; z-index: 2;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,.12));
+  }
+  .avatar:active { cursor: grabbing; }
+  .avatar.bounce { animation: bounce .5s; }
+  @keyframes bounce { 30% { transform: translateX(-50%) translateY(-16px) scale(1.06); } }
+  .avatar.tilt { transform: translateX(-50%) rotate(-12deg); }
+  .zzz {
+    position: absolute; bottom: 96px; left: calc(50% + 30px); font-size: 22px;
+    opacity: 0; transition: opacity .8s; z-index: 3; animation: float 2.4s infinite;
+  }
+  .zzz.show { opacity: .85; }
+  @keyframes float { 50% { transform: translateY(-7px); } }
+  .toy {
+    position: absolute; bottom: 26px; right: 30px; font-size: 34px; cursor: pointer;
+    user-select: none; transition: transform .15s; z-index: 2;
+  }
+  .toy:hover { transform: scale(1.15) rotate(12deg); }
+  .toy.roll { animation: roll .8s; }
+  @keyframes roll { 50% { transform: translateX(-70px) rotate(-360deg); } }
+  .heart {
+    position: absolute; font-size: 20px; opacity: 0; pointer-events: none; z-index: 4;
+  }
+  .heart.pop { animation: heartpop 1s forwards; }
+  @keyframes heartpop { 10% {opacity:1;} 100% { transform: translateY(-46px); opacity: 0; } }
+
+  /* ---- ステータス ---- */
+  .status {
+    background: #fff; border: 1.5px solid var(--line); border-radius: 14px; padding: 10px 14px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px;
+  }
+  .meter { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+  .meter .ico { width: 18px; text-align: center; }
+  .meter .bar { flex: 1; height: 9px; background: #f0e9de; border-radius: 5px; overflow: hidden; }
+  .meter .fill { height: 100%; border-radius: 5px; background: var(--green); transition: width .5s, background .5s; }
+  .meter .fill.low { background: #f0b429; } .meter .fill.crit { background: #e5636c; }
+  .moodline {
+    grid-column: 1 / -1; display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--sub); border-top: 1px dashed var(--line); padding-top: 6px;
+  }
+
+  /* ---- チャット ---- */
+  .chat {
+    background: #fff; border: 1.5px solid var(--line); border-radius: 14px;
+    height: 210px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 7px;
+  }
+  .msg { max-width: 82%; padding: 7px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; }
+  .msg.chomu { background: #fdf1e3; border: 1px solid #f6dfc2; align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.user { background: #def0e9; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg.typing { color: var(--sub); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .4; } }
+
+  .controls { display: flex; gap: 7px; }
+  button {
+    border: none; border-radius: 10px; padding: 9px 13px; font-size: 13px; cursor: pointer;
+    font-family: inherit; background: #efe6d8; color: var(--ink); transition: transform .1s, background .2s;
+  }
+  button:hover { transform: translateY(-1px); }
+  .btn-feed { background: var(--accent); color: #fff; }
+  .btn-memory { background: #e8dff2; }
+  input[type=text] {
+    flex: 1; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px;
+    font-size: 13.5px; font-family: inherit; outline: none; background: #fff;
+  }
+  input[type=text]:focus { border-color: var(--accent); }
+  .btn-send { background: var(--green); color: #fff; }
+
+  /* ---- おぼえたこと ---- */
+  .memory-panel {
+    background: #fff; border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 16px;
+    display: none; font-size: 13px;
+  }
+  .memory-panel.show { display: block; }
+  .memory-panel h3 { margin: 0 0 8px; font-size: 13px; color: var(--sub); }
+  .mem-item { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .mem-item .sbar { width: 70px; height: 7px; background: #f0e9de; border-radius: 4px; overflow: hidden; }
+  .mem-item .sfill { height: 100%; background: var(--pink); }
+  .mem-empty { color: var(--sub); }
+  .mem-del { margin-left: auto; cursor: pointer; color: #d8c9b8; font-size: 12px; padding: 2px 6px; border-radius: 6px; }
+  .mem-del:hover { color: #e5636c; background: #fdeaea; }
+  .debug { font-size: 11px; color: var(--sub); text-align: center; display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="room" id="room">
+    <div class="window"></div>
+    <div class="rug"></div>
+    <div class="avatar" id="avatar">🐱</div>
+    <div class="zzz" id="zzz">💤</div>
+    <div class="toy" id="toy" title="けだまであそぶ">🧶</div>
+  </div>
+
+  <div class="status">
+    <div class="meter"><span class="ico">🍙</span><div class="bar"><div class="fill" id="m-hunger"></div></div></div>
+    <div class="meter"><span class="ico">🧶</span><div class="bar"><div class="fill" id="m-play"></div></div></div>
+    <div class="meter"><span class="ico">💕</span><div class="bar"><div class="fill" id="m-attention"></div></div></div>
+    <div class="meter"><span class="ico">😴</span><div class="bar"><div class="fill" id="m-sleepiness"></div></div></div>
+    <div class="moodline"><span id="mood-face">😊 ごきげん</span><span id="mood-val"></span></div>
+  </div>
+
+  <div class="chat" id="chat"></div>
+
+  <div class="controls">
+    <button class="btn-feed" onclick="Chomu.action('feed')">🍚 ごはん</button>
+    <input type="text" id="input" placeholder="ちょむちゃんにはなしかける…" autocomplete="off">
+    <button class="btn-send" onclick="sendMsg()">▶</button>
+    <button class="btn-memory" onclick="toggleMemory()" title="おぼえたこと">📔</button>
+  </div>
+
+  <div class="memory-panel" id="memory-panel">
+    <h3>📔 ちょむちゃんがおぼえたこと</h3>
+    <div id="memory-list"></div>
+  </div>
+  <div class="debug" id="debug"></div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const FACES = { normal: '🐱', happy: '😺', sulky: '😾', sad: '😿', drowsy: '🐱', asleep: '🐱', groggy: '😽' };
+  let typingEl = null;
+
+  function addMsg(sender, text) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + sender; d.textContent = text;
+    $('chat').appendChild(d); $('chat').scrollTop = $('chat').scrollHeight;
+    if (sender === 'chomu') { $('avatar').classList.add('bounce'); setTimeout(() => $('avatar').classList.remove('bounce'), 500); }
+  }
+  function setTyping(on) {
+    if (on && !typingEl) { typingEl = document.createElement('div'); typingEl.className = 'msg chomu typing'; typingEl.textContent = '…'; $('chat').appendChild(typingEl); $('chat').scrollTop = $('chat').scrollHeight; }
+    if (!on && typingEl) { typingEl.remove(); typingEl = null; }
+  }
+  function setBar(id, need) {
+    const f = $(id), sat = 100 - need;                     // 表示は「満たされ度」
+    f.style.width = sat + '%';
+    f.className = 'fill' + (sat < 20 ? ' crit' : sat < 45 ? ' low' : '');
+  }
+  function onState(v) {
+    setBar('m-hunger', v.needs.hunger); setBar('m-play', v.needs.play);
+    setBar('m-attention', v.needs.attention); setBar('m-sleepiness', v.needs.sleepiness);
+    $('avatar').textContent = FACES[v.face] || '🐱';
+    $('avatar').classList.toggle('tilt', v.face === 'asleep');
+    $('zzz').classList.toggle('show', v.face === 'asleep' || v.face === 'drowsy');
+    $('room').classList.toggle('night', v.face === 'asleep');
+    const m = v.mood;
+    $('mood-face').textContent = m >= 75 ? '😊 ごきげん' : m >= 45 ? '🙂 ふつう' : m >= 25 ? '😕 ふまんげ' : '😢 かなしい';
+    $('mood-val').textContent = 'ごきげん ' + m + '%';
+    renderMemory(v);
+    const dbg = new URL(location.href).searchParams.get('debug');
+    if (dbg) { $('debug').style.display = 'block';
+      $('debug').textContent = `⏩x${dbg} おなか${v.needs.hunger|0} あそび${v.needs.play|0} かまって${v.needs.attention|0} ねむけ${v.needs.sleepiness|0} / ${v.sleep}`; }
+  }
+  function renderMemory(v) {
+    const list = $('memory-list');
+    const rows = [];
+    if (v.callName) rows.push(`<div class="mem-item">💛 よびかた：<b>${esc(v.callName)}</b></div>`);
+    v.memories.forEach(m => rows.push(
+      `<div class="mem-item">🩷 ${esc(m.word)}（${m.kind ? 'すきな' + kindJa(m.kind) : 'すきなもの'}）
+       <div class="sbar"><div class="sfill" style="width:${m.strength}%"></div></div>
+       <span class="mem-del" title="わすれさせる" onclick="Chomu.forget('${m.id}')">✕</span></div>`));
+    list.innerHTML = rows.length ? rows.join('') : '<div class="mem-empty">まだなにもおぼえてないにゃ…</div>';
+  }
+  const KINDJA = { food: 'たべもの', drink: 'のみもの', animal: 'いきもの', place: 'ばしょ', act: 'こと', feel: 'きもち', thing: 'もの', nature: 'しぜん', time: 'じかん' };
+  const kindJa = k => KINDJA[k] || 'もの';
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function sendMsg() { const t = $('input').value; if (!t.trim()) return; $('input').value = ''; Chomu.send(t); }
+  $('input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
+  function toggleMemory() { $('memory-panel').classList.toggle('show'); }
+
+  // けだま（あそび）
+  $('toy').addEventListener('click', () => {
+    $('toy').classList.add('roll'); setTimeout(() => $('toy').classList.remove('roll'), 800);
+    Chomu.action('playToy');
+  });
+
+  // なでなで：アバター上でぐりぐり（累積60px・クールダウン2.5秒）
+  let petDist = 0, lastPet = 0, prevXY = null;
+  $('avatar').addEventListener('mousemove', e => {
+    if (prevXY) petDist += Math.hypot(e.clientX - prevXY[0], e.clientY - prevXY[1]);
+    prevXY = [e.clientX, e.clientY];
+    if (petDist > 60 && Date.now() - lastPet > 2500) {
+      petDist = 0; lastPet = Date.now(); popHeart(e.clientX, e.clientY); Chomu.action('pet');
+    }
+  });
+  $('avatar').addEventListener('mouseleave', () => { prevXY = null; });
+  function popHeart(x, y) {
+    const h = document.createElement('div'); h.className = 'heart pop'; h.textContent = '💗';
+    h.style.left = (x - 8) + 'px'; h.style.top = (y - 20) + 'px'; h.style.position = 'fixed';
+    document.body.appendChild(h); setTimeout(() => h.remove(), 1000);
+  }
+
+  // マウス大移動で起こす（累積800px）
+  let wakeDist = 0, prevW = null;
+  document.addEventListener('mousemove', e => {
+    if (prevW) wakeDist += Math.hypot(e.clientX - prevW[0], e.clientY - prevW[1]);
+    prevW = [e.clientX, e.clientY];
+    if (wakeDist > 800) { wakeDist = 0; Chomu.nudge(); }
+  });
+
+  Chomu.init({ onMessage: addMsg, onTyping: setTyping, onState });
+</script>
+</body>
+</html>
